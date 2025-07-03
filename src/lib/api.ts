@@ -243,9 +243,8 @@ export const budgetsAPI = {
 };
 
 export const receiptsAPI = {
-  upload: async (userId: string, file: File) => {
+  upload: async (file: File) => {
     const formData = new FormData();
-    formData.append("userId", userId);
     formData.append("image", file);
     const response = await api.post("/receipts", formData, {
       headers: {
@@ -254,11 +253,8 @@ export const receiptsAPI = {
     });
     return response.data;
   },
-  getAll: async (
-    userId: string,
-    params?: { page?: number; limit?: number }
-  ) => {
-    const queryParams = new URLSearchParams({ userId });
+  getAll: async (params?: { page?: number; limit?: number }) => {
+    const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append("page", params.page.toString());
     if (params?.limit) queryParams.append("limit", params.limit.toString());
     const response = await api.get(`/receipts?${queryParams}`);
@@ -292,23 +288,22 @@ export const categoriesAPI = {
 };
 
 export const reportsAPI = {
-  generateMonthlyReport: async (
-    userId: string,
-    month: number,
-    year: number
-  ) => {
-    const response = await api.post("/ai/report", { userId, month, year });
+  generateMonthlyReport: async (month: number, year: number) => {
+    const response = await api.post("/ai/report", { month, year });
     return response.data;
   },
-  getAiSuggestions: async (userId: string, category?: string) => {
+  getAiSuggestions: async (category?: string) => {
     const response = await api.post("/ai/suggestions/generate", {
-      userId,
       category,
     });
     return response.data;
   },
-  getAllSuggestions: async (userId: string) => {
-    const response = await api.get(`/ai/suggestions/all?userId=${userId}`);
+  getAllSuggestions: async () => {
+    const response = await api.get("/ai/suggestions/all");
+    return response.data;
+  },
+  markSuggestionAsRead: async (id: string) => {
+    const response = await api.put(`/ai/suggestions/${id}/read`);
     return response.data;
   },
 };

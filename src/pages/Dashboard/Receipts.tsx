@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -13,12 +13,8 @@ import {
   Clock,
   Download,
 } from "lucide-react";
-import {
-  receiptsAPI,
-  authAPI,
-  bankAccountsAPI,
-  categoriesAPI,
-} from "../../lib/api";
+import { receiptsAPI, bankAccountsAPI, categoriesAPI } from "../../lib/api";
+import { requireAuth } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 
 interface Receipt {
@@ -46,12 +42,14 @@ interface ReceiptFormData {
 }
 
 export default function Receipts() {
+  // Ensure user is authenticated
+  requireAuth();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
-  const [user, setUser] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<ReceiptFormData>({
     receiptId: "",
@@ -62,30 +60,13 @@ export default function Receipts() {
   });
   const queryClient = useQueryClient();
 
-  // Get current user
-  const { data: userData } = useQuery({
-    queryKey: ["current-user"],
-    queryFn: async () => {
-      const response = await authAPI.getCurrentUser();
-      return response.data;
-    },
-  });
-
-  useEffect(() => {
-    if (userData) {
-      setUser(userData);
-    }
-  }, [userData]);
-
   // Get receipts
   const { data: receiptsResponse, isLoading } = useQuery({
-    queryKey: ["receipts", user?.id, searchTerm, selectedStatus],
+    queryKey: ["receipts", searchTerm, selectedStatus],
     queryFn: async () => {
-      if (!user?.id) return { data: [] };
-      const response = await receiptsAPI.getAll(user.id);
+      const response = await receiptsAPI.getAll();
       return response;
     },
-    enabled: !!user?.id,
   });
 
   const receipts = receiptsResponse?.data || [];
@@ -115,8 +96,7 @@ export default function Receipts() {
   // Upload receipt mutation
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      if (!user?.id) throw new Error("User not found");
-      const response = await receiptsAPI.upload(user.id, file);
+      const response = await receiptsAPI.upload(file);
       return response;
     },
     onSuccess: () => {
