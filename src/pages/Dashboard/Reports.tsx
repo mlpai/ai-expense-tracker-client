@@ -18,7 +18,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { reportsAPI, expensesAPI, depositsAPI } from "../../lib/api";
+import { reportsAPI, expensesAPI, depositsAPI, API_HOST } from "../../lib/api";
 import { requireAuth } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import dayjs from "dayjs";
@@ -32,6 +32,20 @@ interface AISuggestion {
   category: string;
   isRead: boolean;
   priority: "LOW" | "MEDIUM" | "HIGH";
+}
+
+interface MonthlyReport {
+  id: string;
+  month: number;
+  year: number;
+  monthName: string;
+  totalExpense: string;
+  totalIncome: string;
+  netSavings: string;
+  savingsRate: string;
+  budgetStatus: "UNDER_BUDGET" | "OVER_BUDGET" | "ON_BUDGET";
+  pdfUrl: string;
+  generatedAt: string;
 }
 
 export default function Reports() {
@@ -59,6 +73,17 @@ export default function Reports() {
   );
 
   const suggestions: AISuggestion[] = suggestionsResponse?.data || [];
+
+  // Get monthly reports
+  const { data: reportsResponse, isLoading: reportsLoading } = useQuery({
+    queryKey: ["monthly-reports"],
+    queryFn: async () => {
+      const response = await reportsAPI.getReports();
+      return response;
+    },
+  });
+
+  const monthlyReports: MonthlyReport[] = reportsResponse?.reports || [];
 
   // Get expenses for analytics
   const { data: expensesResponse } = useQuery({
@@ -108,9 +133,9 @@ export default function Reports() {
       return response;
     },
     onSuccess: (data) => {
-      // Handle successful report generation
+      // Refresh reports list after generating new report
+      queryClient.invalidateQueries({ queryKey: ["monthly-reports"] });
       console.log("Report generated:", data);
-      // You could download the report or show it in a modal
     },
   });
 
@@ -210,6 +235,32 @@ export default function Reports() {
     if (category.includes("INCOME")) return "💸";
     if (category.includes("SPENDING")) return "🛍️";
     return "💡";
+  };
+
+  const getBudgetStatusColor = (status: string) => {
+    switch (status) {
+      case "UNDER_BUDGET":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "OVER_BUDGET":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "ON_BUDGET":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getBudgetStatusIcon = (status: string) => {
+    switch (status) {
+      case "UNDER_BUDGET":
+        return "✅";
+      case "OVER_BUDGET":
+        return "⚠️";
+      case "ON_BUDGET":
+        return "📊";
+      default:
+        return "📈";
+    }
   };
 
   return (
@@ -669,6 +720,67 @@ export default function Reports() {
         {/* Monthly Reports Tab */}
         {activeTab === "reports" && (
           <div className="space-y-6">
+            {/* Reports Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="card p-6">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">
+                      Total Reports
+                    </p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {monthlyReports.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="card p-6">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">
+                      Under Budget
+                    </p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {
+                        monthlyReports.filter(
+                          (r) => r.budgetStatus === "UNDER_BUDGET"
+                        ).length
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="card p-6">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <PiggyBank className="w-5 h-5 text-yellow-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">
+                      Avg Savings Rate
+                    </p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {monthlyReports.length > 0
+                        ? (
+                            monthlyReports.reduce(
+                              (sum, r) => sum + parseFloat(r.savingsRate),
+                              0
+                            ) / monthlyReports.length
+                          ).toFixed(1)
+                        : "0.0"}
+                      %
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Report Generation */}
             <div className="card">
               <div className="card-header">
@@ -739,15 +851,112 @@ export default function Reports() {
                 </h3>
               </div>
               <div className="card-body">
-                <div className="text-center py-12">
-                  <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
-                    No reports generated yet
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Generate your first monthly report to see it here.
-                  </p>
-                </div>
+                {reportsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <RefreshCw className="w-8 h-8 animate-spin text-primary-600" />
+                  </div>
+                ) : monthlyReports.length === 0 ? (
+                  <div className="text-center py-12">
+                    <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      No reports generated yet
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Generate your first monthly report to see it here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {monthlyReports.map((report) => (
+                      <div
+                        key={report.id}
+                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                              <BarChart3 className="w-5 h-5 text-primary-600" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">
+                                {report.monthName} {report.year} Report
+                              </h4>
+                              <p className="text-xs text-gray-500">
+                                Generated on{" "}
+                                {dayjs(report.generatedAt).format(
+                                  "MMM D, YYYY at h:mm A"
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBudgetStatusColor(
+                              report.budgetStatus
+                            )}`}
+                          >
+                            {getBudgetStatusIcon(report.budgetStatus)}
+                            <span className="ml-1">
+                              {report.budgetStatus.replace("_", " ")}
+                            </span>
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div className="text-center">
+                            <p className="text-xs text-gray-500">
+                              Total Income
+                            </p>
+                            <p className="text-sm font-semibold text-green-600">
+                              ${parseFloat(report.totalIncome).toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-gray-500">
+                              Total Expenses
+                            </p>
+                            <p className="text-sm font-semibold text-red-600">
+                              ${parseFloat(report.totalExpense).toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-gray-500">Net Savings</p>
+                            <p
+                              className={`text-sm font-semibold ${
+                                parseFloat(report.netSavings) >= 0
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              ${parseFloat(report.netSavings).toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-gray-500">
+                              Savings Rate
+                            </p>
+                            <p className="text-sm font-semibold text-blue-600">
+                              {parseFloat(report.savingsRate).toFixed(1)}%
+                            </p>
+                          </div>
+                        </div>
+
+                        {report?.pdfUrl ? (
+                          <div className="flex justify-end">
+                            <a
+                              href={`${API_HOST}${report.pdfUrl}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-sm text-primary-600 hover:text-primary-800 font-medium"
+                            >
+                              <Download className="w-4 h-4 mr-1" />
+                              Download PDF
+                            </a>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

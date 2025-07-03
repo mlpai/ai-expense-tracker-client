@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+export const API_HOST = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE_URL = `${API_HOST}/api/v1`;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -304,6 +304,10 @@ export const reportsAPI = {
   },
   markSuggestionAsRead: async (id: string) => {
     const response = await api.put(`/ai/suggestions/${id}/read`);
+    return response.data;
+  },
+  getReports: async () => {
+    const response = await api.get("/ai/reports");
     return response.data;
   },
 };
