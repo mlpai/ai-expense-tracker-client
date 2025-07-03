@@ -12,6 +12,9 @@ import Expenses from "./pages/Dashboard/Expenses";
 import Deposits from "./pages/Dashboard/Deposits";
 import Accounts from "./pages/Dashboard/Accounts";
 import Settings from "./pages/Dashboard/Settings";
+import Receipts from "./pages/Dashboard/Receipts";
+import Budgets from "./pages/Dashboard/Budgets";
+import Reports from "./pages/Dashboard/Reports";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Create a client
@@ -72,6 +75,30 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/receipts"
+              element={
+                <ProtectedRoute>
+                  <Receipts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/budgets"
+              element={
+                <ProtectedRoute>
+                  <Budgets />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/reports"
+              element={
+                <ProtectedRoute>
+                  <Reports />
                 </ProtectedRoute>
               }
             />

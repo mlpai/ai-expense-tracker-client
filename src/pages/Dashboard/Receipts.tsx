@@ -40,7 +40,7 @@ interface Receipt {
 interface ReceiptFormData {
   receiptId: string;
   bankAccountId: string;
-  expenseTypeId: string;
+  categoryId: string;
   amount: number;
   note?: string;
 }
@@ -56,7 +56,7 @@ export default function Receipts() {
   const [formData, setFormData] = useState<ReceiptFormData>({
     receiptId: "",
     bankAccountId: "",
-    expenseTypeId: "",
+    categoryId: "",
     amount: 0,
     note: "",
   });
@@ -101,16 +101,16 @@ export default function Receipts() {
 
   const bankAccounts = bankAccountsResponse?.data || [];
 
-  // Get expense types
-  const { data: expenseTypesResponse } = useQuery({
-    queryKey: ["expense-types"],
+  // Get expense categories
+  const { data: expenseCategoriesResponse } = useQuery({
+    queryKey: ["expense-categories"],
     queryFn: async () => {
-      const response = await categoriesAPI.getExpenseTypes();
+      const response = await categoriesAPI.getExpenseCategories();
       return response;
     },
   });
 
-  const expenseTypes = expenseTypesResponse?.data || [];
+  const expenseCategories = expenseCategoriesResponse?.data || [];
 
   // Upload receipt mutation
   const uploadMutation = useMutation({
@@ -153,7 +153,7 @@ export default function Receipts() {
     setFormData({
       receiptId: "",
       bankAccountId: "",
-      expenseTypeId: "",
+      categoryId: "",
       amount: 0,
       note: "",
     });
@@ -179,7 +179,7 @@ export default function Receipts() {
     e.preventDefault();
     if (
       !formData.bankAccountId ||
-      !formData.expenseTypeId ||
+      !formData.categoryId ||
       formData.amount <= 0
     ) {
       alert("Please fill in all required fields");
@@ -193,7 +193,7 @@ export default function Receipts() {
     setFormData({
       receiptId: receipt.id,
       bankAccountId: "",
-      expenseTypeId: "",
+      categoryId: "",
       amount: 0,
       note: "",
     });
@@ -552,23 +552,23 @@ export default function Receipts() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Expense Type *
+                    Expense Category *
                   </label>
                   <select
-                    value={formData.expenseTypeId}
+                    value={formData.categoryId}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        expenseTypeId: e.target.value,
+                        categoryId: e.target.value,
                       })
                     }
                     className="input w-full"
                     required
                   >
-                    <option value="">Select type</option>
-                    {expenseTypes.map((type: any) => (
-                      <option key={type.id} value={type.id}>
-                        {type.name}
+                    <option value="">Select category</option>
+                    {expenseCategories.map((category: any) => (
+                      <option key={category.id} value={category.id}>
+                        {category.icon} {category.name}
                       </option>
                     ))}
                   </select>

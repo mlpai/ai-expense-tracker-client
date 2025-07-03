@@ -13,6 +13,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { authAPI } from "../../lib/api";
+import { logout } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 
 interface UserProfile {
@@ -166,9 +167,7 @@ export default function Settings() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/login";
+    logout();
   };
 
   if (isLoading) {

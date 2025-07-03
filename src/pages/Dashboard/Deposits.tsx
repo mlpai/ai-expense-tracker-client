@@ -16,7 +16,9 @@ import {
   bankAccountsAPI,
   authAPI,
 } from "../../lib/api";
+import { getAuthToken, getUserId } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
+import dayjs from "dayjs";
 
 interface Deposit {
   id: string;
@@ -60,6 +62,12 @@ export default function Deposits() {
     date: new Date().toISOString().split("T")[0],
   });
   const queryClient = useQueryClient();
+  const [startDate, setStartDate] = useState(
+    dayjs().startOf("month").format("YYYY-MM-DD")
+  );
+  const [endDate, setEndDate] = useState(
+    dayjs().endOf("month").format("YYYY-MM-DD")
+  );
 
   // Get current user
   const { data: userData } = useQuery({
@@ -79,13 +87,17 @@ export default function Deposits() {
 
   // Get deposits
   const { data: depositsResponse, isLoading } = useQuery({
-    queryKey: ["deposits", user?.id, searchTerm, selectedType],
+    queryKey: ["deposits", searchTerm, selectedType, startDate, endDate],
     queryFn: async () => {
-      if (!user?.id) return { data: [] };
-      const response = await depositsAPI.getAll(user.id);
+      const token = getAuthToken();
+      if (!token) throw new Error("No authentication token");
+
+      const userId = getUserId();
+      if (!userId) throw new Error("No user ID found");
+
+      const response = await depositsAPI.getAll(userId, { startDate, endDate });
       return response;
     },
-    enabled: !!user?.id,
   });
 
   const deposits = depositsResponse?.data || [];
@@ -94,6 +106,9 @@ export default function Deposits() {
   const { data: depositTypesResponse } = useQuery({
     queryKey: ["deposit-types"],
     queryFn: async () => {
+      const token = getAuthToken();
+      if (!token) throw new Error("No authentication token");
+
       const response = await categoriesAPI.getDepositTypes();
       return response;
     },
@@ -105,6 +120,9 @@ export default function Deposits() {
   const { data: bankAccountsResponse } = useQuery({
     queryKey: ["bank-accounts"],
     queryFn: async () => {
+      const token = getAuthToken();
+      if (!token) throw new Error("No authentication token");
+
       const response = await bankAccountsAPI.getAll();
       return response;
     },
@@ -137,8 +155,9 @@ export default function Deposits() {
   });
 
   const resetForm = () => {
+    const userId = getUserId();
     setFormData({
-      userId: user?.id || "",
+      userId: userId || "",
       bankAccountId: "",
       depositTypeId: "",
       amount: 0,
@@ -152,12 +171,19 @@ export default function Deposits() {
     if (
       !formData.bankAccountId ||
       !formData.depositTypeId ||
-      formData.amount <= 0
+      Number(formData.amount) <= 0
     ) {
       alert("Please fill in all required fields");
       return;
     }
-    createMutation.mutate(formData);
+
+    // Convert date to ISO format for the backend
+    const submissionData = {
+      ...formData,
+      date: new Date(formData.date).toISOString(),
+    };
+
+    createMutation.mutate(submissionData);
   };
 
   const handleEdit = (deposit: Deposit) => {
@@ -168,7 +194,7 @@ export default function Deposits() {
       depositTypeId: deposit.depositTypeId,
       amount: deposit.amount,
       note: deposit.note || "",
-      date: deposit.date.split("T")[0],
+      date: new Date(deposit.date).toISOString().split("T")[0],
     });
     setIsModalOpen(true);
   };
@@ -186,7 +212,7 @@ export default function Deposits() {
   );
 
   const totalDeposits = filteredDeposits.reduce(
-    (sum: number, deposit: Deposit) => sum + deposit.amount,
+    (sum: number, deposit: Deposit) => Number(sum) + Number(deposit.amount),
     0
   );
 
@@ -200,7 +226,7 @@ export default function Deposits() {
   });
 
   const thisMonthTotal = thisMonthDeposits.reduce(
-    (sum: number, deposit: Deposit) => sum + deposit.amount,
+    (sum: number, deposit: Deposit) => Number(sum) + Number(deposit.amount),
     0
   );
 
@@ -284,6 +310,31 @@ export default function Deposits() {
         </div>
 
         {/* Filters */}
+        <div className="card mb-4">
+          <div className="card-body flex flex-col sm:flex-row gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">From</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="input w-full"
+                max={endDate}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">To</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="input w-full"
+                min={startDate}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="card">
           <div className="card-body">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -299,19 +350,38 @@ export default function Deposits() {
                   />
                 </div>
               </div>
-              <div className="sm:w-48">
+              <div className="sm:w-48 relative">
                 <select
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
-                  className="input"
+                  className="input w-full pl-10 pr-10 appearance-none bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                 >
                   <option value="">All Types</option>
                   {depositTypes.map((type: any) => (
                     <option key={type.id} value={type.id}>
+                      {type.icon ? `${type.icon} ` : ""}
                       {type.name}
                     </option>
                   ))}
                 </select>
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400">💳</span>
+                </div>
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>

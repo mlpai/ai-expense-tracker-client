@@ -16,13 +16,15 @@ import {
   bankAccountsAPI,
   authAPI,
 } from "../../lib/api";
+import { getAuthToken, getUserId } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
+import dayjs from "dayjs";
 
 interface Expense {
   id: string;
   userId: string;
   bankAccountId: string;
-  expenseTypeId: string;
+  categoryId: string;
   amount: number;
   note?: string;
   date: string;
@@ -31,23 +33,33 @@ interface Expense {
     name: string;
     bankName: string;
   };
-  expenseType?: {
+  category?: {
     name: string;
-    category?: {
-      name: string;
-      color?: string;
-    };
+    color?: string;
+    icon?: string;
+  };
+  recurringFrequency?: "daily" | "weekly" | "monthly" | "yearly";
+  recurringExpense?: {
+    frequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+    startDate: string;
+    endDate?: string;
   };
 }
 
 interface ExpenseFormData {
   userId: string;
   bankAccountId: string;
-  expenseTypeId: string;
+  categoryId: string;
   amount: number;
   note?: string;
   date: string;
   isRecurring?: boolean;
+}
+
+interface RecurringExpenseFormData {
+  frequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+  startDate: string;
+  endDate?: string;
 }
 
 export default function Expenses() {
@@ -59,13 +71,25 @@ export default function Expenses() {
   const [formData, setFormData] = useState<ExpenseFormData>({
     userId: "",
     bankAccountId: "",
-    expenseTypeId: "",
+    categoryId: "",
     amount: 0,
     note: "",
     date: new Date().toISOString().split("T")[0],
     isRecurring: false,
   });
+  const [recurringData, setRecurringData] = useState<RecurringExpenseFormData>({
+    frequency: "MONTHLY",
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: "",
+  });
+  const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
+  const [startDate, setStartDate] = useState(
+    dayjs().startOf("month").format("YYYY-MM-DD")
+  );
+  const [endDate, setEndDate] = useState(
+    dayjs().endOf("month").format("YYYY-MM-DD")
+  );
 
   // Get current user
   const { data: userData } = useQuery({
@@ -84,33 +108,33 @@ export default function Expenses() {
   }, [userData]);
 
   // Get expenses
-  const { data: expensesResponse, isLoading } = useQuery({
-    queryKey: ["expenses", user?.id, searchTerm, selectedCategory],
+  const {
+    data: expensesResponse,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["expenses", searchTerm, selectedCategory, startDate, endDate],
     queryFn: async () => {
-      if (!user?.id) return { data: [] };
-      const response = await expensesAPI.getAll(user.id);
+      const token = getAuthToken();
+      if (!token) throw new Error("No authentication token");
+
+      const userId = getUserId();
+      if (!userId) throw new Error("No user ID found");
+
+      const response = await expensesAPI.getAll(userId, { startDate, endDate });
       return response;
     },
-    enabled: !!user?.id,
   });
 
   const expenses = expensesResponse?.data || [];
-
-  // Get expense types
-  const { data: expenseTypesResponse } = useQuery({
-    queryKey: ["expense-types"],
-    queryFn: async () => {
-      const response = await categoriesAPI.getExpenseTypes();
-      return response;
-    },
-  });
-
-  const expenseTypes = expenseTypesResponse?.data || [];
 
   // Get expense categories
   const { data: expenseCategoriesResponse } = useQuery({
     queryKey: ["expense-categories"],
     queryFn: async () => {
+      const token = getAuthToken();
+      if (!token) throw new Error("No authentication token");
+
       const response = await categoriesAPI.getExpenseCategories();
       return response;
     },
@@ -122,6 +146,9 @@ export default function Expenses() {
   const { data: bankAccountsResponse } = useQuery({
     queryKey: ["bank-accounts"],
     queryFn: async () => {
+      const token = getAuthToken();
+      if (!token) throw new Error("No authentication token");
+
       const response = await bankAccountsAPI.getAll();
       return response;
     },
@@ -139,6 +166,7 @@ export default function Expenses() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["bank-accounts"] });
       setIsModalOpen(false);
       setEditingExpense(null);
       resetForm();
@@ -154,28 +182,69 @@ export default function Expenses() {
   });
 
   const resetForm = () => {
+    const userId = getUserId();
     setFormData({
-      userId: user?.id || "",
+      userId: userId || "",
       bankAccountId: "",
-      expenseTypeId: "",
+      categoryId: "",
       amount: 0,
       note: "",
       date: new Date().toISOString().split("T")[0],
       isRecurring: false,
     });
+    setRecurringData({
+      frequency: "MONTHLY",
+      startDate: new Date().toISOString().split("T")[0],
+      endDate: "",
+    });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
       !formData.bankAccountId ||
-      !formData.expenseTypeId ||
+      !formData.categoryId ||
       formData.amount <= 0
     ) {
       alert("Please fill in all required fields");
       return;
     }
-    createMutation.mutate(formData);
+    setLoading(true);
+    try {
+      let recurringExpenseId: string | undefined = undefined;
+      if (formData.isRecurring) {
+        // 1. Create RecurringExpense
+        const recurringPayload = {
+          userId: formData.userId,
+          categoryId: formData.categoryId,
+          amount: formData.amount,
+          note: formData.note,
+          frequency: recurringData.frequency,
+          startDate: dayjs(recurringData.startDate).toISOString(),
+          endDate: recurringData.endDate
+            ? dayjs(recurringData.endDate).toISOString()
+            : undefined,
+          nextDueDate: dayjs(recurringData.startDate).toISOString(),
+          isActive: true,
+        };
+        const data = await expensesAPI.createRecurring(recurringPayload);
+        if (!data.success)
+          throw new Error(data.message || "Failed to create recurring expense");
+        recurringExpenseId = data.data.id;
+      }
+      // 2. Create Expense
+      const submissionData = {
+        ...formData,
+        date: new Date(formData.date).toISOString(),
+        isRecurring: !!formData.isRecurring,
+        recurringExpenseId,
+      };
+      await createMutation.mutateAsync(submissionData);
+    } catch (err: any) {
+      alert(err.message || "Failed to create expense");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (expense: Expense) => {
@@ -183,11 +252,23 @@ export default function Expenses() {
     setFormData({
       userId: expense.userId,
       bankAccountId: expense.bankAccountId,
-      expenseTypeId: expense.expenseTypeId,
+      categoryId: expense.categoryId,
       amount: expense.amount,
       note: expense.note || "",
-      date: expense.date.split("T")[0],
+      date: new Date(expense.date).toISOString().split("T")[0],
       isRecurring: expense.isRecurring,
+    });
+    setRecurringData({
+      frequency: (expense.recurringExpense?.frequency ||
+        "MONTHLY") as RecurringExpenseFormData["frequency"],
+      startDate: expense.recurringExpense?.startDate
+        ? new Date(expense.recurringExpense.startDate)
+            .toISOString()
+            .split("T")[0]
+        : new Date(expense.date).toISOString().split("T")[0],
+      endDate: expense.recurringExpense?.endDate
+        ? new Date(expense.recurringExpense.endDate).toISOString().split("T")[0]
+        : "",
     });
     setIsModalOpen(true);
   };
@@ -198,19 +279,20 @@ export default function Expenses() {
     }
   };
 
-  const filteredExpenses = expenses.filter(
-    (expense: Expense) =>
-      expense.note?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.expenseType?.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      expense.expenseType?.category?.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-  );
+  const filteredExpenses = expenses.filter((expense: Expense) => {
+    // If no search term, show all expenses
+    if (!searchTerm) return true;
+
+    // Check if search term matches note or category name
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      expense.note?.toLowerCase().includes(searchLower) ||
+      expense.category?.name?.toLowerCase().includes(searchLower)
+    );
+  });
 
   const totalExpenses = filteredExpenses.reduce(
-    (sum: number, expense: Expense) => sum + expense.amount,
+    (sum: number, expense: Expense) => Number(sum) + Number(expense.amount),
     0
   );
 
@@ -224,15 +306,36 @@ export default function Expenses() {
   });
 
   const thisMonthTotal = thisMonthExpenses.reduce(
-    (sum: number, expense: Expense) => sum + expense.amount,
+    (sum: number, expense: Expense) => Number(sum) + Number(expense.amount),
     0
   );
 
-  if (isLoading) {
+  if (isLoading && !searchTerm?.length) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Error loading expenses
+            </h3>
+            <p className="text-gray-600">{error.message}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn btn-primary mt-4"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -308,6 +411,31 @@ export default function Expenses() {
         </div>
 
         {/* Filters */}
+        <div className="card mb-4">
+          <div className="card-body flex flex-col sm:flex-row gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">From</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="input w-full"
+                max={endDate}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">To</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="input w-full"
+                min={startDate}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="card">
           <div className="card-body">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -323,19 +451,38 @@ export default function Expenses() {
                   />
                 </div>
               </div>
-              <div className="sm:w-48">
+              <div className="sm:w-48 relative">
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="input"
+                  className="input w-full pl-10 pr-10 appearance-none bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                 >
                   <option value="">All Categories</option>
                   {expenseCategories.map((category: any) => (
                     <option key={category.id} value={category.id}>
+                      {category.icon ? `${category.icon} ` : ""}
                       {category.name}
                     </option>
                   ))}
                 </select>
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400">🏷️</span>
+                </div>
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -358,6 +505,26 @@ export default function Expenses() {
                 <p className="mt-1 text-sm text-gray-500">
                   Get started by adding your first expense.
                 </p>
+                {/* Debug info */}
+                {expenses.length > 0 && (
+                  <div className="mt-4 p-4 bg-gray-100 rounded-lg text-left">
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      Debug Info:
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Raw expenses count: {expenses.length}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Search term: "{searchTerm}"
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Selected category: "{selectedCategory}"
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Filtered count: {filteredExpenses.length}
+                    </p>
+                  </div>
+                )}
                 <div className="mt-6">
                   <button
                     onClick={() => {
@@ -407,9 +574,7 @@ export default function Expenses() {
                           {expense.note || "No description"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {expense.expenseType?.category?.name ||
-                            expense.expenseType?.name ||
-                            "Unknown"}
+                          {expense.category?.name || "Unknown"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {expense.bankAccount?.name || "Unknown"}
@@ -485,50 +650,96 @@ export default function Expenses() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Expense Type *
+                    Category *
                   </label>
-                  <select
-                    value={formData.expenseTypeId}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        expenseTypeId: e.target.value,
-                      })
-                    }
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">Select type</option>
-                    {expenseTypes.map((type: any) => (
-                      <option key={type.id} value={type.id}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formData.categoryId}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          categoryId: e.target.value,
+                        })
+                      }
+                      className="input w-full pl-10 pr-10 appearance-none bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                      required
+                    >
+                      <option value="">Select category</option>
+                      {expenseCategories.map((category: any) => (
+                        <option key={category.id} value={category.id}>
+                          {category.icon} {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-400">
+                        {formData.categoryId
+                          ? expenseCategories.find(
+                              (c: any) => c.id === formData.categoryId
+                            )?.icon || "📝"
+                          : "📝"}
+                      </span>
+                    </div>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Bank Account *
                   </label>
-                  <select
-                    value={formData.bankAccountId}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        bankAccountId: e.target.value,
-                      })
-                    }
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">Select account</option>
-                    {bankAccounts.map((account: any) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name} - {account.bankName}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formData.bankAccountId}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          bankAccountId: e.target.value,
+                        })
+                      }
+                      className="input w-full pl-10 pr-10 appearance-none bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                      required
+                    >
+                      <option value="">Select account</option>
+                      {bankAccounts.map((account: any) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name} - {account.bankName}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-400">🏦</span>
+                    </div>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -546,25 +757,107 @@ export default function Expenses() {
                   />
                 </div>
 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="isRecurring"
-                    checked={formData.isRecurring}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        isRecurring: e.target.checked,
-                      })
-                    }
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                  />
-                  <label
-                    htmlFor="isRecurring"
-                    className="ml-2 block text-sm text-gray-900"
-                  >
-                    Recurring expense
-                  </label>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="isRecurring"
+                      checked={formData.isRecurring}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          isRecurring: e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="isRecurring"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
+                      Recurring expense
+                    </label>
+                  </div>
+
+                  {formData.isRecurring && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Frequency *
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={recurringData.frequency}
+                            onChange={(e) =>
+                              setRecurringData({
+                                ...recurringData,
+                                frequency: e.target
+                                  .value as RecurringExpenseFormData["frequency"],
+                              })
+                            }
+                            className="input w-full pl-10 pr-10 appearance-none bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                            required
+                          >
+                            <option value="DAILY">Daily</option>
+                            <option value="WEEKLY">Weekly</option>
+                            <option value="MONTHLY">Monthly</option>
+                            <option value="YEARLY">Yearly</option>
+                          </select>
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-gray-400">🔄</span>
+                          </div>
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg
+                              className="h-5 w-5 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Start Date *
+                        </label>
+                        <input
+                          type="date"
+                          value={recurringData.startDate}
+                          onChange={(e) =>
+                            setRecurringData({
+                              ...recurringData,
+                              startDate: e.target.value,
+                            })
+                          }
+                          className="input w-full"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          End Date
+                        </label>
+                        <input
+                          type="date"
+                          value={recurringData.endDate || ""}
+                          onChange={(e) =>
+                            setRecurringData({
+                              ...recurringData,
+                              endDate: e.target.value,
+                            })
+                          }
+                          className="input w-full"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">
@@ -581,14 +874,10 @@ export default function Expenses() {
                   </button>
                   <button
                     type="submit"
-                    disabled={createMutation.isPending}
+                    disabled={loading}
                     className="btn btn-primary"
                   >
-                    {createMutation.isPending
-                      ? "Saving..."
-                      : editingExpense
-                      ? "Update"
-                      : "Save"}
+                    {loading ? "Saving..." : editingExpense ? "Update" : "Save"}
                   </button>
                 </div>
               </form>

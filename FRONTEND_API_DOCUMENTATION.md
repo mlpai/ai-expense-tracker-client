@@ -70,7 +70,7 @@ interface Expense {
   id: string;
   userId: string;
   bankAccountId: string;
-  expenseTypeId: string;
+  categoryId: string;
   amount: number; // Decimal as number
   note?: string;
   date: string; // ISO date string
@@ -80,7 +80,7 @@ interface Expense {
   createdAt: string;
   updatedAt: string;
   bankAccount?: BankAccount;
-  expenseType?: ExpenseType;
+  category?: ExpenseCategory;
   receipt?: Receipt;
   recurringExpense?: RecurringExpense;
 }
@@ -151,7 +151,7 @@ interface DepositType {
 interface RecurringExpense {
   id: string;
   userId: string;
-  expenseTypeId: string;
+  categoryId: string;
   amount: number; // Decimal as number
   note?: string;
   frequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
@@ -161,7 +161,7 @@ interface RecurringExpense {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  expenseType?: ExpenseType;
+  category?: ExpenseCategory;
 }
 ```
 
@@ -432,7 +432,7 @@ interface Notification {
 {
   "userId": string;
   "bankAccountId": string;
-  "expenseTypeId": string;
+  "categoryId": string;
   "amount": number;
   "note"?: string;
   "date"?: string; // ISO date string, defaults to now
@@ -494,7 +494,7 @@ interface Notification {
 ```typescript
 {
   "userId": string;
-  "expenseTypeId": string;
+  "categoryId": string;
   "amount": number;
   "note"?: string;
   "frequency": 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
@@ -945,7 +945,7 @@ FormData {
 {
   "receiptId": string;
   "bankAccountId": string;
-  "expenseTypeId": string;
+  "categoryId": string;
   "amount": number;
   "note"?: string;
 }

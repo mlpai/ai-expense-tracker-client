@@ -8,11 +8,11 @@ import {
   DollarSign,
   TrendingUp,
   AlertTriangle,
-  Calendar,
   Target,
   BarChart3,
 } from "lucide-react";
 import { budgetsAPI, authAPI } from "../../lib/api";
+import { getAuthToken, getUserId } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
   BarChart,
@@ -93,32 +93,47 @@ export default function Budgets() {
   useEffect(() => {
     if (userData) {
       setUser(userData);
-      setFormData((prev) => ({ ...prev, userId: userData.id }));
+      const userId = getUserId();
+      if (userId) {
+        setFormData((prev) => ({ ...prev, userId }));
+      }
     }
   }, [userData]);
 
   // Get budgets
-  const { data: budgetsResponse, isLoading } = useQuery({
-    queryKey: ["budgets", user?.id, selectedYear],
+  const {
+    data: budgetsResponse,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["budgets", selectedYear],
     queryFn: async () => {
-      if (!user?.id) return { data: [] };
-      const response = await budgetsAPI.getAll(user.id);
+      const token = getAuthToken();
+      if (!token) throw new Error("No authentication token");
+
+      const userId = getUserId();
+      if (!userId) throw new Error("No user ID found");
+
+      const response = await budgetsAPI.getAll(userId);
       return response;
     },
-    enabled: !!user?.id,
   });
 
   const budgets = budgetsResponse?.data || [];
 
   // Get current budget summary
   const { data: budgetSummary } = useQuery({
-    queryKey: ["budget-summary", user?.id],
+    queryKey: ["budget-summary", selectedYear],
     queryFn: async () => {
-      if (!user?.id) return null;
-      const response = await budgetsAPI.getSummary(user.id);
+      const token = getAuthToken();
+      if (!token) throw new Error("No authentication token");
+
+      const userId = getUserId();
+      if (!userId) throw new Error("No user ID found");
+
+      const response = await budgetsAPI.getSummary(userId, selectedYear);
       return response.data;
     },
-    enabled: !!user?.id,
   });
 
   // Create/Update mutation
@@ -148,8 +163,9 @@ export default function Budgets() {
   });
 
   const resetForm = () => {
+    const userId = getUserId();
     setFormData({
-      userId: user?.id || "",
+      userId: userId || "",
       month: new Date().getMonth() + 1,
       year: new Date().getFullYear(),
       amountLimit: 0,
@@ -211,6 +227,27 @@ export default function Budgets() {
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Error loading budgets
+            </h3>
+            <p className="text-gray-600">{error.message}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn btn-primary mt-4"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -378,11 +415,11 @@ export default function Budgets() {
                   />
                 </div>
               </div>
-              <div className="sm:w-48">
+              <div className="sm:w-48 relative">
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  className="input"
+                  className="input w-full pl-10 pr-10 appearance-none bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                 >
                   {Array.from(
                     { length: 5 },
@@ -393,6 +430,24 @@ export default function Budgets() {
                     </option>
                   ))}
                 </select>
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400">📅</span>
+                </div>
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>

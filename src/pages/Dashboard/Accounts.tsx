@@ -11,6 +11,7 @@ import {
   Building,
 } from "lucide-react";
 import { bankAccountsAPI, authAPI } from "../../lib/api";
+import { getAuthToken } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 
 interface BankAccount {
@@ -68,6 +69,9 @@ export default function Accounts() {
   const { data: accountsResponse, isLoading } = useQuery({
     queryKey: ["bank-accounts"],
     queryFn: async () => {
+      const token = getAuthToken();
+      if (!token) throw new Error("No authentication token");
+
       const response = await bankAccountsAPI.getAll();
       return response;
     },

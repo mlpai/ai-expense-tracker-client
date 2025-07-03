@@ -87,6 +87,8 @@ export const expensesAPI = {
     const queryParams = new URLSearchParams({ userId });
     if (params?.startDate) queryParams.append("startDate", params.startDate);
     if (params?.endDate) queryParams.append("endDate", params.endDate);
+    // Include related data
+    queryParams.append("include", "bankAccount,category");
     const response = await api.get(`/expenses?${queryParams}`);
     return response.data;
   },
@@ -97,15 +99,30 @@ export const expensesAPI = {
   create: async (data: {
     userId: string;
     bankAccountId: string;
-    expenseTypeId: string;
+    categoryId: string;
     amount: number;
     note?: string;
     date?: string;
     isRecurring?: boolean;
+    recurringFrequency?: "daily" | "weekly" | "monthly" | "yearly";
     recurringExpenseId?: string;
     receiptId?: string;
   }) => {
     const response = await api.post("/expenses", data);
+    return response.data;
+  },
+  createRecurring: async (data: {
+    userId: string;
+    categoryId: string;
+    amount: number;
+    note?: string;
+    frequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+    startDate: string;
+    endDate?: string;
+    nextDueDate: string;
+    isActive?: boolean;
+  }) => {
+    const response = await api.post("/expenses/recurring", data);
     return response.data;
   },
   update: async (id: string, data: any) => {
@@ -217,8 +234,10 @@ export const budgetsAPI = {
     const response = await api.get(`/budgets/current?userId=${userId}`);
     return response.data;
   },
-  getSummary: async (userId: string) => {
-    const response = await api.get(`/budgets/summary/all?userId=${userId}`);
+  getSummary: async (userId: string, year?: number) => {
+    const queryParams = new URLSearchParams({ userId });
+    if (year) queryParams.append("year", year.toString());
+    const response = await api.get(`/budgets/summary/all?${queryParams}`);
     return response.data;
   },
 };
@@ -252,7 +271,7 @@ export const receiptsAPI = {
   createExpense: async (data: {
     receiptId: string;
     bankAccountId: string;
-    expenseTypeId: string;
+    categoryId: string;
     amount: number;
     note?: string;
   }) => {
@@ -264,10 +283,6 @@ export const receiptsAPI = {
 export const categoriesAPI = {
   getExpenseCategories: async () => {
     const response = await api.get("/expense-categories");
-    return response.data;
-  },
-  getExpenseTypes: async () => {
-    const response = await api.get("/expense-types");
     return response.data;
   },
   getDepositTypes: async () => {
