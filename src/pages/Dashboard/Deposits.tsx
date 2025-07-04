@@ -531,48 +531,88 @@ export default function Deposits() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Deposit Type *
                   </label>
-                  <select
-                    value={formData.depositTypeId}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        depositTypeId: e.target.value,
-                      })
-                    }
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">Select type</option>
-                    {depositTypes.map((type: any) => (
-                      <option key={type.id} value={type.id}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formData.depositTypeId}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          depositTypeId: e.target.value,
+                        })
+                      }
+                      className="input w-full pl-10 pr-10 appearance-none bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                      required
+                    >
+                      <option value="">Select type</option>
+                      {depositTypes.map((type: any) => (
+                        <option key={type.id} value={type.id}>
+                          {type.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-400">💳</span>
+                    </div>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Bank Account *
                   </label>
-                  <select
-                    value={formData.bankAccountId}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        bankAccountId: e.target.value,
-                      })
-                    }
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">Select account</option>
-                    {bankAccounts.map((account: any) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name} - {account.bankName}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formData.bankAccountId}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          bankAccountId: e.target.value,
+                        })
+                      }
+                      className="input w-full pl-10 pr-10 appearance-none bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                      required
+                    >
+                      <option value="">Select account</option>
+                      {bankAccounts.map((account: any) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name} - {account.bankName}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-400">🏦</span>
+                    </div>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
