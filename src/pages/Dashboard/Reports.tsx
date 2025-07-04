@@ -58,6 +58,7 @@ export default function Reports() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [showReadSuggestions, setShowReadSuggestions] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
 
   const queryClient = useQueryClient();
 
@@ -128,8 +129,20 @@ export default function Reports() {
 
   // Generate monthly report mutation
   const generateReportMutation = useMutation({
-    mutationFn: async ({ month, year }: { month: number; year: number }) => {
-      const response = await reportsAPI.generateMonthlyReport(month, year);
+    mutationFn: async ({
+      month,
+      year,
+      language,
+    }: {
+      month: number;
+      year: number;
+      language: string;
+    }) => {
+      const response = await reportsAPI.generateMonthlyReport(
+        month,
+        year,
+        language
+      );
       return response;
     },
     onSuccess: (data) => {
@@ -158,6 +171,7 @@ export default function Reports() {
     generateReportMutation.mutate({
       month: selectedMonth,
       year: selectedYear,
+      language: selectedLanguage,
     });
   };
 
@@ -841,7 +855,7 @@ export default function Reports() {
                       onChange={(e) =>
                         setSelectedMonth(parseInt(e.target.value))
                       }
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 px-3 py-2"
+                      className="input w-full"
                     >
                       {Array.from({ length: 12 }, (_, i) => (
                         <option key={i + 1} value={i + 1}>
@@ -859,7 +873,7 @@ export default function Reports() {
                       onChange={(e) =>
                         setSelectedYear(parseInt(e.target.value))
                       }
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 px-3 py-2"
+                      className="input w-full"
                     >
                       {Array.from({ length: 5 }, (_, i) => {
                         const year = dayjs().year() - 2 + i;
@@ -871,16 +885,33 @@ export default function Reports() {
                       })}
                     </select>
                   </div>
+
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Language
+                    </label>
+                    <select
+                      value={selectedLanguage}
+                      onChange={(e) => setSelectedLanguage(e.target.value)}
+                      className="input w-full"
+                    >
+                      <option value="en">English</option>
+                      <option value="hi">हिन्दी</option>
+                      <option value="pa">ਪੰਜਾਬੀ</option>
+                    </select>
+                  </div>
                 </div>
                 <button
                   onClick={handleGenerateReport}
                   disabled={generateReportMutation.isPending}
                   className="btn btn-primary"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  {generateReportMutation.isPending
-                    ? "Generating Report..."
-                    : "Generate Report"}
+                  <div className="flex items-center">
+                    <Download className="w-4 h-4 mr-2" />
+                    {generateReportMutation.isPending
+                      ? "Generating Report..."
+                      : "Generate Report"}
+                  </div>
                 </button>
               </div>
             </div>

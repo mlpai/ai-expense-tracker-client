@@ -288,8 +288,18 @@ export const categoriesAPI = {
 };
 
 export const reportsAPI = {
-  generateMonthlyReport: async (month: number, year: number) => {
-    const response = await api.post("/ai/report", { month, year });
+  generateMonthlyReport: async (
+    month: number,
+    year: number,
+    language: string = "en",
+    generatePdf: boolean = true
+  ) => {
+    const response = await api.post("/ai/report", {
+      month,
+      year,
+      language,
+      generatePdf,
+    });
     return response.data;
   },
   getAiSuggestions: async (category?: string) => {
