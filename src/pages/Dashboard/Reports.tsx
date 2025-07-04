@@ -19,7 +19,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { reportsAPI, expensesAPI, depositsAPI, API_HOST } from "../../lib/api";
-import { requireAuth } from "../../lib/utils";
+import { requireAuth, formatCurrency } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import dayjs from "dayjs";
 
@@ -570,7 +570,7 @@ export default function Reports() {
                       Total Expenses
                     </p>
                     <p className="text-2xl font-semibold text-gray-900">
-                      ${Number(totalExpenses || 0).toFixed(2)}
+                      {formatCurrency(Number(totalExpenses || 0))}
                     </p>
                   </div>
                 </div>
@@ -585,7 +585,7 @@ export default function Reports() {
                       Total Deposits
                     </p>
                     <p className="text-2xl font-semibold text-gray-900">
-                      ${Number(totalDeposits || 0).toFixed(2)}
+                      {formatCurrency(Number(totalDeposits || 0))}
                     </p>
                   </div>
                 </div>
@@ -612,7 +612,7 @@ export default function Reports() {
                         netFlow >= 0 ? "text-green-600" : "text-red-600"
                       }`}
                     >
-                      ${Number(netFlow || 0).toFixed(2)}
+                      {formatCurrency(Number(netFlow || 0))}
                     </p>
                   </div>
                 </div>
@@ -654,7 +654,7 @@ export default function Reports() {
                                   {category}
                                 </span>
                                 <span className="text-sm text-gray-600">
-                                  ${(amount as number).toFixed(2)} (
+                                  {formatCurrency(amount as number)} (
                                   {percentage.toFixed(1)}
                                   %)
                                 </span>
@@ -706,7 +706,7 @@ export default function Reports() {
                             {dayjs(month).format("MMMM YYYY")}
                           </span>
                           <span className="text-sm text-gray-600">
-                            ${(amount as number).toFixed(2)}
+                            {formatCurrency(amount as number)}
                           </span>
                         </div>
                       ))}
@@ -907,7 +907,7 @@ export default function Reports() {
                               Total Income
                             </p>
                             <p className="text-sm font-semibold text-green-600">
-                              ${parseFloat(report.totalIncome).toFixed(2)}
+                              {formatCurrency(parseFloat(report.totalIncome))}
                             </p>
                           </div>
                           <div className="text-center">
@@ -915,7 +915,7 @@ export default function Reports() {
                               Total Expenses
                             </p>
                             <p className="text-sm font-semibold text-red-600">
-                              ${parseFloat(report.totalExpense).toFixed(2)}
+                              {formatCurrency(parseFloat(report.totalExpense))}
                             </p>
                           </div>
                           <div className="text-center">
@@ -927,7 +927,7 @@ export default function Reports() {
                                   : "text-red-600"
                               }`}
                             >
-                              ${parseFloat(report.netSavings).toFixed(2)}
+                              {formatCurrency(parseFloat(report.netSavings))}
                             </p>
                           </div>
                           <div className="text-center">

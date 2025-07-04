@@ -16,7 +16,7 @@ import {
   bankAccountsAPI,
   authAPI,
 } from "../../lib/api";
-import { getAuthToken, getUserId } from "../../lib/utils";
+import { getAuthToken, getUserId, formatCurrency } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import dayjs from "dayjs";
 
@@ -274,7 +274,7 @@ export default function Deposits() {
                   Total Deposits
                 </p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  ${totalDeposits.toLocaleString()}
+                  {formatCurrency(totalDeposits)}
                 </p>
               </div>
             </div>
@@ -287,7 +287,7 @@ export default function Deposits() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">This Month</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  ${thisMonthTotal.toLocaleString()}
+                  {formatCurrency(thisMonthTotal)}
                 </p>
               </div>
             </div>
@@ -459,7 +459,7 @@ export default function Deposits() {
                           {deposit.bankAccount?.name || "Unknown"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-success-600">
-                          +${deposit.amount.toLocaleString()}
+                          +{formatCurrency(deposit.amount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
@@ -486,7 +486,7 @@ export default function Deposits() {
 
         {/* Add/Edit Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">
                 {editingDeposit ? "Edit Deposit" : "Add Deposit"}

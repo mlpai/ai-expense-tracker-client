@@ -11,7 +11,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { authAPI, expensesAPI, depositsAPI } from "../../lib/api";
-import { getAuthToken, getUserId } from "../../lib/utils";
+import { getAuthToken, getUserId, formatCurrency } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
   LineChart,
@@ -341,7 +341,7 @@ export default function Overview() {
                   Total Income
                 </p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  ${totalIncome.toLocaleString()}
+                  {formatCurrency(totalIncome)}
                 </p>
               </div>
             </div>
@@ -377,7 +377,7 @@ export default function Overview() {
                   Total Expenses
                 </p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  ${totalExpenses.toLocaleString()}
+                  {formatCurrency(totalExpenses)}
                 </p>
               </div>
             </div>
@@ -415,7 +415,7 @@ export default function Overview() {
                     netSavings >= 0 ? "text-success-600" : "text-danger-600"
                   }`}
                 >
-                  ${Math.abs(netSavings).toLocaleString()}
+                  {formatCurrency(Math.abs(netSavings))}
                 </p>
               </div>
             </div>
@@ -579,7 +579,7 @@ export default function Overview() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium text-danger-600">
-                          -${expense.amount}
+                          -{formatCurrency(expense.amount)}
                         </p>
                         <p className="text-xs text-gray-500">
                           {expense.category?.name || "Unknown"}
@@ -629,7 +629,7 @@ export default function Overview() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium text-success-600">
-                          +${deposit.amount}
+                          +{formatCurrency(deposit.amount)}
                         </p>
                         <p className="text-xs text-gray-500">
                           {deposit.depositType?.name || "Unknown"}

@@ -11,7 +11,7 @@ import {
   Building,
 } from "lucide-react";
 import { bankAccountsAPI, authAPI } from "../../lib/api";
-import { getAuthToken } from "../../lib/utils";
+import { getAuthToken, formatCurrency } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 
 interface BankAccount {
@@ -202,7 +202,7 @@ export default function Accounts() {
                   Total Balance
                 </p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  ${totalBalance.toLocaleString()}
+                  {formatCurrency(totalBalance)}
                 </p>
               </div>
             </div>
@@ -321,7 +321,7 @@ export default function Accounts() {
                       <div>
                         <p className="text-sm text-gray-600">Balance</p>
                         <p className="text-lg font-semibold text-gray-900">
-                          ${account.balance.toLocaleString()}
+                          {formatCurrency(account.balance)}
                         </p>
                       </div>
                       <div>
@@ -355,7 +355,7 @@ export default function Accounts() {
 
         {/* Add/Edit Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">
                 {editingAccount ? "Edit Account" : "Add Account"}

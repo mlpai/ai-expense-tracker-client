@@ -12,7 +12,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { budgetsAPI, authAPI } from "../../lib/api";
-import { getAuthToken, getUserId } from "../../lib/utils";
+import { getAuthToken, getUserId, formatCurrency } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
   BarChart,
@@ -290,7 +290,7 @@ export default function Budgets() {
                     Monthly Budget
                   </p>
                   <p className="text-2xl font-semibold text-gray-900">
-                    ${currentBudget.amountLimit.toLocaleString()}
+                    {formatCurrency(currentBudget.amountLimit)}
                   </p>
                 </div>
               </div>
@@ -305,7 +305,7 @@ export default function Budgets() {
                     Total Spent
                   </p>
                   <p className="text-2xl font-semibold text-gray-900">
-                    ${totalSpent.toLocaleString()}
+                    {formatCurrency(totalSpent)}
                   </p>
                 </div>
               </div>
@@ -318,7 +318,7 @@ export default function Budgets() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Remaining</p>
                   <p className="text-2xl font-semibold text-gray-900">
-                    ${remainingBudget.toLocaleString()}
+                    {formatCurrency(remainingBudget)}
                   </p>
                 </div>
               </div>
@@ -372,8 +372,8 @@ export default function Budgets() {
                   Budget Progress
                 </span>
                 <span className="text-sm text-gray-500">
-                  ${totalSpent.toLocaleString()} / $
-                  {currentBudget.amountLimit.toLocaleString()}
+                  {formatCurrency(totalSpent)} /{" "}
+                  {formatCurrency(currentBudget.amountLimit)}
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -390,9 +390,9 @@ export default function Budgets() {
               </div>
               {spendingPercentage > 100 && (
                 <p className="text-sm text-danger-600 mt-1">
-                  You are $
-                  {(totalSpent - currentBudget.amountLimit).toLocaleString()}{" "}
-                  over budget!
+                  You are{" "}
+                  {formatCurrency(totalSpent - currentBudget.amountLimit)} over
+                  budget!
                 </p>
               )}
             </div>
@@ -548,17 +548,18 @@ export default function Budgets() {
                             {MONTHS[budget.month - 1]} {budget.year}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ${budget.amountLimit.toLocaleString()}
+                            {formatCurrency(budget.amountLimit)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ${budget.spentAmount.toLocaleString()}
+                            {formatCurrency(budget.spentAmount)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            $
-                            {Math.max(
-                              0,
-                              budget.amountLimit - budget.spentAmount
-                            ).toLocaleString()}
+                            {formatCurrency(
+                              Math.max(
+                                0,
+                                budget.amountLimit - budget.spentAmount
+                              )
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
@@ -604,7 +605,7 @@ export default function Budgets() {
 
         {/* Add/Edit Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">
                 {editingBudget ? "Edit Budget" : "Add Budget"}
