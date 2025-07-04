@@ -1,28 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  User,
-  Mail,
-  Lock,
-  Bell,
-  Shield,
-  Palette,
-  Globe,
-  Save,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { User, Lock, Bell, Shield, Save, Eye, EyeOff } from "lucide-react";
 import { authAPI } from "../../lib/api";
 import { logout } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
-
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 interface ProfileFormData {
   name: string;
@@ -47,7 +28,6 @@ export default function Settings() {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [user, setUser] = useState<UserProfile | null>(null);
 
   const [profileForm, setProfileForm] = useState<ProfileFormData>({
     name: "",
@@ -81,7 +61,6 @@ export default function Settings() {
 
   useEffect(() => {
     if (userData) {
-      setUser(userData);
       setProfileForm({
         name: userData.name,
         email: userData.email,

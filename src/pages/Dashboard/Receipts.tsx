@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Plus,
   Upload,
   Eye,
   Trash2,
@@ -11,7 +10,6 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  Download,
 } from "lucide-react";
 import { receiptsAPI, bankAccountsAPI, categoriesAPI } from "../../lib/api";
 import { requireAuth, formatCurrency } from "../../lib/utils";

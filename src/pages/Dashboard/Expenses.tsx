@@ -67,7 +67,6 @@ export default function Expenses() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState<ExpenseFormData>({
     userId: "",
     bankAccountId: "",
@@ -102,7 +101,6 @@ export default function Expenses() {
 
   useEffect(() => {
     if (userData) {
-      setUser(userData);
       setFormData((prev) => ({ ...prev, userId: userData.id }));
     }
   }, [userData]);

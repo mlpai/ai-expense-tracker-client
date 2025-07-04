@@ -52,7 +52,6 @@ export default function Deposits() {
   const [editingDeposit, setEditingDeposit] = useState<Deposit | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("");
-  const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState<DepositFormData>({
     userId: "",
     bankAccountId: "",
@@ -80,7 +79,6 @@ export default function Deposits() {
 
   useEffect(() => {
     if (userData) {
-      setUser(userData);
       setFormData((prev) => ({ ...prev, userId: userData.id }));
     }
   }, [userData]);

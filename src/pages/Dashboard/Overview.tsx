@@ -27,21 +27,6 @@ import {
 } from "recharts";
 import dayjs from "dayjs";
 
-interface DashboardStats {
-  totalExpenses: number;
-  totalIncome: number;
-  netSavings: number;
-  expensesByCategory: Array<{
-    category: string;
-    amount: number;
-    count: number;
-  }>;
-  expensesByMonth: Array<{
-    month: string;
-    amount: number;
-  }>;
-}
-
 interface User {
   id: string;
   name: string;

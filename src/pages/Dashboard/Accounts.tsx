@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -6,11 +6,10 @@ import {
   Trash2,
   Search,
   Wallet,
-  DollarSign,
   CreditCard,
   Building,
 } from "lucide-react";
-import { bankAccountsAPI, authAPI } from "../../lib/api";
+import { bankAccountsAPI } from "../../lib/api";
 import { getAuthToken, formatCurrency } from "../../lib/utils";
 import DashboardLayout from "../../layouts/DashboardLayout";
 
@@ -40,7 +39,6 @@ export default function Accounts() {
     null
   );
   const [searchTerm, setSearchTerm] = useState("");
-  const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState<AccountFormData>({
     name: "",
     accountNumber: "",
@@ -49,21 +47,6 @@ export default function Accounts() {
     isDefault: false,
   });
   const queryClient = useQueryClient();
-
-  // Get current user
-  const { data: userData } = useQuery({
-    queryKey: ["current-user"],
-    queryFn: async () => {
-      const response = await authAPI.getCurrentUser();
-      return response.data;
-    },
-  });
-
-  useEffect(() => {
-    if (userData) {
-      setUser(userData);
-    }
-  }, [userData]);
 
   // Get bank accounts
   const { data: accountsResponse, isLoading } = useQuery({

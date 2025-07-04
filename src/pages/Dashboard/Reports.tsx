@@ -5,18 +5,15 @@ import {
   Download,
   Brain,
   TrendingUp,
-  Calendar,
   RefreshCw,
   AlertCircle,
   CheckCircle,
   Clock,
-  Lightbulb,
   DollarSign,
   PiggyBank,
-  Target,
-  Filter,
-  Eye,
   EyeOff,
+  Eye,
+  Lightbulb,
 } from "lucide-react";
 import { reportsAPI, expensesAPI, depositsAPI, API_HOST } from "../../lib/api";
 import { requireAuth, formatCurrency } from "../../lib/utils";
@@ -498,9 +495,9 @@ export default function Reports() {
                     className="btn btn-secondary flex items-center"
                   >
                     {showReadSuggestions ? (
-                      <EyeOff className="w-4 h-4 mr-2" />
-                    ) : (
                       <Eye className="w-4 h-4 mr-2" />
+                    ) : (
+                      <EyeOff className="w-4 h-4 mr-2" />
                     )}
                     {showReadSuggestions ? "Hide Read" : "Show Read"}
                   </button>

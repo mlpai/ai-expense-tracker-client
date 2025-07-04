@@ -69,7 +69,7 @@ export const dashboardAPI = {
     const response = await api.get(`/expenses?${params}`);
     return response.data;
   },
-  getMonthlyTrend: async (userId: string, months = 6) => {
+  getMonthlyTrend: async (userId: string) => {
     // This would need to be implemented on the backend
     const response = await api.get(`/expenses?userId=${userId}`);
     return response.data;

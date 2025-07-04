@@ -71,7 +71,6 @@ export default function Budgets() {
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState<BudgetFormData>({
     userId: "",
     month: new Date().getMonth() + 1,
@@ -92,7 +91,6 @@ export default function Budgets() {
 
   useEffect(() => {
     if (userData) {
-      setUser(userData);
       const userId = getUserId();
       if (userId) {
         setFormData((prev) => ({ ...prev, userId }));
